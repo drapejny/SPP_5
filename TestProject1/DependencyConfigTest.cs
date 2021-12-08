@@ -13,8 +13,6 @@ namespace DependencyConfigTest
 {
     public class Tests
     {
-
-
         [Test]
         public void RegisterTest()
         {
@@ -166,14 +164,6 @@ namespace DependencyConfigTest
         class SingleClass
         {
 
-        }
-
-        abstract class AbstractClass : IInterface
-        {
-            public void met()
-            {
-                throw new System.NotImplementedException();
-            }
         }
     }
 }

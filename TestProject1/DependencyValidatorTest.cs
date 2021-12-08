@@ -3,6 +3,8 @@ using DependencyInjection.DependencyConfiguration;
 using DependencyInjection.DependencyConfiguration.ImplementationData;
 using DependencyInjection.DependencyProvider;
 using LifeCycle = DependencyInjection.DependencyConfiguration.ImplementationData.LifeCycle;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace TestProject1
 {
