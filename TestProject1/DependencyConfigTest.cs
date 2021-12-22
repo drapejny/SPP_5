@@ -126,7 +126,34 @@ namespace DependencyConfigTest
             Assert.IsTrue(e.iq.GetType().Equals(typeof(Q)));
         }
 
+        //Self - Self тест
+        [Test]
+        public void CircularTest3()
+        {
+            var dependencies = new DependencyConfig();
+            var provider = new DependencyProvider(dependencies);
+            dependencies.Register<ISelf, Self>(LifeCycle.Singleton, ImplNumber.First);
+            Self self = (Self)provider.Resolve<ISelf>(ImplNumber.First);
+            Assert.IsTrue(self.iself.GetType().Equals(typeof(Self)));
+        }
 
+        interface ISelf
+        {
+            void met();
+        }
+
+        class Self : ISelf
+        {
+            public ISelf iself { get; set; }
+            public Self (ISelf self)
+            {
+                this.iself = self;
+            }
+            public void met()
+            {
+                throw new System.NotImplementedException();
+            }
+        }
         interface IZ
         {
             void met();
