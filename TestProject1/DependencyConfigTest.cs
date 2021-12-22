@@ -108,6 +108,44 @@ namespace DependencyConfigTest
             Assert.IsTrue(link1 == link2);
         }
 
+
+        interface IA
+        {
+            void met();
+        }
+
+        class A : IA
+        {
+            public IB ib;
+            public A(IB iB)
+            {
+                this.ib = iB;
+            }
+
+            public void met()
+            {
+                throw new System.NotImplementedException();
+            }
+        }
+
+        interface IB
+        {
+            void met();
+        }
+
+        class B: IB
+        {
+            IA ia;
+            public B(IA ia)
+            {
+                this.ia = ia;
+            }
+
+            public void met()
+            {
+                throw new System.NotImplementedException();
+            }
+        }
         interface IInterface
         {
             void met();

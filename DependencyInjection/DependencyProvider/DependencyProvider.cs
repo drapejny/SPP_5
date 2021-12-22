@@ -15,6 +15,7 @@ namespace DependencyInjection.DependencyProvider
         static object locker = new object();
         private readonly DependencyConfig _configuration;
         public readonly Dictionary<Type, List<SingletonContainer>> _singletons;
+        private readonly Stack<Type> _recursionStack = new Stack<Type>();
 
         public DependencyProvider(DependencyConfig configuration)
         {
@@ -36,6 +37,14 @@ namespace DependencyInjection.DependencyProvider
 
         public object Resolve(Type dependencyType, ImplNumber number = ImplNumber.Any)
         {
+
+            if (_recursionStack.Contains(dependencyType))
+            {
+                return null;
+            }
+
+            _recursionStack.Push(dependencyType);
+
             object result;
             if (this.IsIEnumerable(dependencyType))
             {
@@ -47,6 +56,8 @@ namespace DependencyInjection.DependencyProvider
                 Type requiredType = GetGeneratedType(dependencyType, container.ImplementationsType);
                 result = this.ResolveNonIEnumerable(requiredType, container.TimeToLive, dependencyType, container.ImplNumber);
             }
+
+            _recursionStack.Pop();
 
             return result;
         }
@@ -72,27 +83,6 @@ namespace DependencyInjection.DependencyProvider
             }
             return this._singletons[dependencyType]
                    .Find(singletonContainer => number.HasFlag(singletonContainer.ImplNumber)).Instance;
-        }
-
-        private ImplContainer GetImplContainerByDependencyType(Type dependencyType, ImplNumber number)
-        {
-            ImplContainer container;
-            if (dependencyType.IsGenericType)
-            {
-                container = GetImplementationsContainerLast(dependencyType, number);
-                container ??= GetImplementationsContainerLast(dependencyType.GetGenericTypeDefinition(), number);
-            }
-            else
-            {
-                container = GetImplementationsContainerLast(dependencyType, number);
-            }
-
-            return container;
-        }
-
-        private bool IsIEnumerable(Type dependencyType)
-        {
-            return dependencyType.GetInterfaces().Any(i => i.Name == "IEnumerable");
         }
 
         private object CreateInstance(Type implementationType)
@@ -123,6 +113,29 @@ namespace DependencyInjection.DependencyProvider
 
             throw new ArgumentException("Cannot create instance of class");
         }
+
+        private ImplContainer GetImplContainerByDependencyType(Type dependencyType, ImplNumber number)
+        {
+            ImplContainer container;
+            if (dependencyType.IsGenericType)
+            {
+                container = GetImplementationsContainerLast(dependencyType, number);
+                container ??= GetImplementationsContainerLast(dependencyType.GetGenericTypeDefinition(), number);
+            }
+            else
+            {
+                container = GetImplementationsContainerLast(dependencyType, number);
+            }
+
+            return container;
+        }
+
+        private bool IsIEnumerable(Type dependencyType)
+        {
+            return dependencyType.GetInterfaces().Any(i => i.Name == "IEnumerable");
+        }
+
+        
 
         private Type GetGeneratedType(Type dependencyType, Type implementationType)
         {
