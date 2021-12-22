@@ -16,6 +16,7 @@ namespace DependencyInjection.DependencyProvider
         private readonly DependencyConfig _configuration;
         public readonly Dictionary<Type, List<SingletonContainer>> _singletons;
         private readonly Stack<Type> _recursionStack = new Stack<Type>();
+        private Dictionary<Type, Type> nullDictionary = new Dictionary<Type, Type>();
 
         public DependencyProvider(DependencyConfig configuration)
         {
@@ -57,8 +58,6 @@ namespace DependencyInjection.DependencyProvider
                 result = this.ResolveNonIEnumerable(requiredType, container.TimeToLive, dependencyType, container.ImplNumber);
             }
 
-            _recursionStack.Pop();
-
             return result;
         }
 
@@ -67,7 +66,7 @@ namespace DependencyInjection.DependencyProvider
         {
             if (ttl != LifeCycle.Singleton)
             {
-                return CreateInstance(implType);
+                return CreateInstance(dependencyType,implType);
             }
 
             if (!IsInSingletons(dependencyType, implType, number))
@@ -76,8 +75,11 @@ namespace DependencyInjection.DependencyProvider
                 {
                     if (!IsInSingletons(dependencyType, implType, number))
                     {
-                       var result = CreateInstance(implType);
+                        var result = CreateInstance(dependencyType,implType);
+                        Console.WriteLine(result == null);
                         this.AddToSingletons(dependencyType, result, number);
+                        _recursionStack.Pop();
+                        solveNullObjects(dependencyType);
                     }
                 }
             }
@@ -85,7 +87,29 @@ namespace DependencyInjection.DependencyProvider
                    .Find(singletonContainer => number.HasFlag(singletonContainer.ImplNumber)).Instance;
         }
 
-        private object CreateInstance(Type implementationType)
+        private void solveNullObjects(Type replaceType)
+        {
+            foreach(KeyValuePair<Type, Type> keyValuePair in nullDictionary)
+            {
+                if (replaceType.Equals(keyValuePair.Value))
+                {
+                    object objectWithNull = Resolve(keyValuePair.Key, ImplNumber.Any);
+                    PropertyInfo[] propertyInfos = objectWithNull.GetType().GetProperties();
+                    for(int i = 0; i < propertyInfos.Length; i++)
+                    {
+                        if (propertyInfos[i].PropertyType.Equals(keyValuePair.Value)){
+                            _recursionStack.Pop();
+                            object replaceObject = Resolve(replaceType, ImplNumber.Any);
+                            Console.WriteLine(replaceObject == null);
+                            objectWithNull.GetType().GetProperty(propertyInfos[i].Name).SetValue(objectWithNull, replaceObject);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private object CreateInstance( Type dependecyType, Type implementationType)
         {
             var constructors = implementationType.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
             foreach (var constructor in constructors)
@@ -99,6 +123,13 @@ namespace DependencyInjection.DependencyProvider
                     {
                         var number = parameterInfo.GetCustomAttribute<DependencyKeyAttribute>()?.ImplNumber ?? ImplNumber.Any;
                         parameter = Resolve(parameterInfo.ParameterType, number);
+                        if(parameter == null)
+                        {
+                            if (!nullDictionary.ContainsKey(dependecyType))
+                            {
+                                nullDictionary.Add(dependecyType, parameterInfo.ParameterType);
+                            }
+                        }
                     }
                     else
                     {
@@ -135,7 +166,7 @@ namespace DependencyInjection.DependencyProvider
             return dependencyType.GetInterfaces().Any(i => i.Name == "IEnumerable");
         }
 
-        
+
 
         private Type GetGeneratedType(Type dependencyType, Type implementationType)
         {

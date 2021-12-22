@@ -70,20 +70,6 @@ namespace DependencyConfigTest
         }
 
         [Test]
-        public void ImplNumberTest()
-        {
-            var dependencies = new DependencyConfig();
-            var provider = new DependencyProvider(dependencies);
-            dependencies.Register<IInterface, Class>(LifeCycle.InstancePerDependency, ImplNumber.Second);
-            dependencies.Register<IInterface, Class1>(LifeCycle.InstancePerDependency, ImplNumber.First);
-            dependencies.Register<InnerInterface, InnerClass>();
-            var firstResult = provider.Resolve<IInterface>(ImplNumber.First);
-            var secondResult = provider.Resolve<IInterface>(ImplNumber.Second);
-            Assert.AreEqual(firstResult.GetType(), typeof(Class1));
-            Assert.AreEqual(secondResult.GetType(), typeof(Class));
-        }
-
-        [Test]
         public void TtlTest()
         {
             var dependencies = new DependencyConfig();
@@ -106,6 +92,132 @@ namespace DependencyConfigTest
             IInterface link1 = provider.Resolve<IInterface>(ImplNumber.First);
             IInterface link2 = provider.Resolve<IInterface>(ImplNumber.First);
             Assert.IsTrue(link1 == link2);
+        }
+
+
+        // Z - X - Z тест
+        [Test]
+        public void CircularTest1()
+        {
+            var dependencies = new DependencyConfig();
+            var provider = new DependencyProvider(dependencies);
+            dependencies.Register<IZ, Z>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IX, X>(LifeCycle.Singleton, ImplNumber.First);
+            Z z = (Z)provider.Resolve<IZ>(ImplNumber.First);
+            X x = (X)provider.Resolve<IX>(ImplNumber.First);
+            Assert.IsTrue(z.ix.GetType().Equals(typeof(X)));
+            Assert.IsTrue(x.iz.GetType().Equals(typeof(Z)));
+        }
+
+        //Q - W - E - Q тест
+        [Test]
+        public void CircularTest2()
+        {
+            var dependencies = new DependencyConfig();
+            var provider = new DependencyProvider(dependencies);
+            dependencies.Register<IQ, Q>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IW, W>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IE, E>(LifeCycle.Singleton, ImplNumber.First);
+            Q q = (Q)provider.Resolve<IQ>(ImplNumber.First);
+            W w = (W)provider.Resolve<IW>(ImplNumber.First);
+            E e = (E)provider.Resolve<IE>(ImplNumber.Any);
+            Assert.IsTrue(q.iw.GetType().Equals(typeof(W)));
+            Assert.IsTrue(w.ie.GetType().Equals(typeof(E)));
+            Assert.IsTrue(e.iq.GetType().Equals(typeof(Q)));
+        }
+
+
+        interface IZ
+        {
+            void met();
+        }
+
+        class Z : IZ
+        {
+            public IX ix { get; set; }
+            public Z(IX ix)
+            {
+                this.ix = ix;
+            }
+            public void met()
+            {
+                throw new System.NotImplementedException();
+            }
+        }
+
+        interface IX
+        {
+            void met();
+        }
+
+        class X : IX
+        {
+            public IZ iz { get; set; }
+            public X(IZ iz)
+            {
+                this.iz = iz;
+            }
+            public void met()
+            {
+                throw new System.NotImplementedException();
+            }
+        }
+
+        interface IQ
+        {
+            void met();
+        }
+
+        class Q : IQ
+        {
+            public IW iw { get; set; }
+            public Q(IW iw)
+            {
+                this.iw = iw;
+            }
+
+            public void met()
+            {
+                throw new System.NotImplementedException();
+            }
+        }
+
+        interface IW
+        {
+            void met();
+        }
+
+        class W : IW
+        {
+            public IE ie { get; set; }
+            public W(IE ie)
+            {
+                this.ie = ie;
+            }
+
+            public void met()
+            {
+                throw new System.NotImplementedException();
+            }
+        }
+
+        interface IE
+        {
+            void met();
+        }
+
+        class E : IE
+        {
+            public IQ iq { get; set; }
+            public E(IQ iq)
+            {
+                this.iq = iq;
+            }
+
+            public void met()
+            {
+                throw new System.NotImplementedException();
+            }
         }
 
 
