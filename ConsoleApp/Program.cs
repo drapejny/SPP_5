@@ -19,13 +19,16 @@ namespace ConsoleApp
             var provider = new DependencyProvider(dependencies);
             dependencies.Register<IA, A>(LifeCycle.Singleton, ImplNumber.First);
             dependencies.Register<IB, B>(LifeCycle.Singleton, ImplNumber.First);
-            dependencies.Register<IC, C>(LifeCycle.Singleton, ImplNumber.Any);
-            A a = (A) provider.Resolve<IA>(ImplNumber.First);
+            dependencies.Register<IC, C>(LifeCycle.Singleton, ImplNumber.First);
+            A a = (A)provider.Resolve<IA>(ImplNumber.First);
             B b = (B)provider.Resolve<IB>(ImplNumber.First);
-            C c = (C)provider.Resolve<IC>(ImplNumber.Any);
+            C c = (C)provider.Resolve<IC>(ImplNumber.First);
+
             Console.WriteLine(a.ib);
+            Console.WriteLine(a.ic);
             Console.WriteLine(b.ic);
             Console.WriteLine(c.ia);
+
 
         }
     }
@@ -38,9 +41,11 @@ namespace ConsoleApp
     class A : IA
     {
         public IB ib { get; set; }
-        public A(IB iB)
+        public IC ic { get; set; }
+        public A(IB ib, IC ic)
         {
-            this.ib = iB;
+            this.ic = ic;
+            this.ib = ib;
         }
 
         public void met()
