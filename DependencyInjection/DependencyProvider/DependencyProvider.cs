@@ -33,7 +33,31 @@ namespace DependencyInjection.DependencyProvider
         public TDependency Resolve<TDependency>(ImplNumber number = ImplNumber.Any)
             where TDependency : class
         {
+            if (typeof(TDependency).IsClass)
+            {
+                return (TDependency)ResolveClass(typeof(TDependency), number);
+            }
             return (TDependency)Resolve(typeof(TDependency), number);
+        }
+
+        private object ResolveClass(Type classType , ImplNumber number = ImplNumber.Any)
+        {
+            Type[] interfaces = classType.GetInterfaces();
+            foreach(Type classInterface in interfaces)
+            {
+                if (this._configuration.DependenciesDictionary.ContainsKey(classInterface))
+                {
+                    Type implType = this._configuration.DependenciesDictionary[classInterface]
+                        .FindLast(container => number.HasFlag(container.ImplNumber)).ImplementationsType;
+                    if (implType.Equals(classType))
+                    {
+                       return Resolve(classInterface);
+                    }
+                }
+
+            }
+            throw new ArgumentException("Wrong class type, check configuration");
+           
         }
 
         public object Resolve(Type dependencyType, ImplNumber number = ImplNumber.Any)

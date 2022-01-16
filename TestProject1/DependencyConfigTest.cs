@@ -126,6 +126,58 @@ namespace DependencyConfigTest
             Assert.IsTrue(e.iq.GetType().Equals(typeof(Q)));
         }
 
+        [Test]
+        public void ClassProviderTest()
+        {
+            var dependencies = new DependencyConfig();
+            var provider = new DependencyProvider(dependencies);
+            dependencies.Register<IQ, Q>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IW, W>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IE, E>(LifeCycle.Singleton, ImplNumber.First);
+            Q q = (Q)provider.Resolve<Q>(ImplNumber.First);
+            Assert.IsNotNull(q);
+            Assert.IsNotNull(q.iw);
+        }
+        [Test]
+        public void ClassProviderWrongTest()
+        {
+            var dependencies = new DependencyConfig();
+            var provider = new DependencyProvider(dependencies);
+            Assert.Throws<System.ArgumentException>(() => provider.Resolve<Q>(ImplNumber.First));
+        }
+        [Test]
+        public void ClassProviderManyImplementaionsTest()
+        {
+            var dependencies = new DependencyConfig();
+            var provider = new DependencyProvider(dependencies);
+            dependencies.Register<IQ, Q>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IQQ, Q>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IQQQ, Q>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IW, W>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IE, E>(LifeCycle.Singleton, ImplNumber.First);
+            Q q = (Q)provider.Resolve<Q>(ImplNumber.First);
+            Assert.IsNotNull(q);
+            Assert.IsNotNull(q.iw);
+        }
+
+        [Test]
+        public void ClassProviderSingletoneObjectsTest()
+        {
+            var dependencies = new DependencyConfig();
+            var provider = new DependencyProvider(dependencies);
+            dependencies.Register<IQ, Q>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IQQ, Q>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IQQQ, Q>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IW, W>(LifeCycle.Singleton, ImplNumber.First);
+            dependencies.Register<IE, E>(LifeCycle.Singleton, ImplNumber.First);
+            Q q = (Q)provider.Resolve<Q>(ImplNumber.First);
+            W w = (W)provider.Resolve<IW>(ImplNumber.First);
+            E e = (E)provider.Resolve<IE>(ImplNumber.Any);
+            Assert.AreSame(q, e.iq);
+            Assert.AreSame(e, w.ie);
+            Assert.AreSame(w, q.iw);
+        }
+
         interface IZ
         {
             void met();
@@ -167,7 +219,17 @@ namespace DependencyConfigTest
             void met();
         }
 
-        class Q : IQ
+        interface IQQ
+        {
+            void mett();
+        }
+
+        interface IQQQ
+        {
+            void mettt();
+        }
+
+        class Q : IQ, IQQ, IQQQ
         {
             public IW iw { get; set; }
             public Q(IW iw)
@@ -176,6 +238,16 @@ namespace DependencyConfigTest
             }
 
             public void met()
+            {
+                throw new System.NotImplementedException();
+            }
+
+            public void mett()
+            {
+                throw new System.NotImplementedException();
+            }
+
+            public void mettt()
             {
                 throw new System.NotImplementedException();
             }
